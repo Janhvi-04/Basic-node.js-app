@@ -1,0 +1,38 @@
+name: Build and Deploy to Azure
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Build Docker image
+        run: docker build -t my-node-app .
+
+      - name: Login to ACR
+        uses: azure/docker-login@v1
+        with:
+          login-server: demoregistry.azurecr.io
+          username: ${{ secrets.AZURE_ACR_USERNAME }}
+          password: ${{ secrets.AZURE_ACR_PASSWORD }}
+
+      - name: Push image to ACR
+        run: docker push demoregistry.azurecr.io/my-node-app:v1
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: my-node-app-service
+          images: demoregistry.azurecr.io/my-node-app:v1
